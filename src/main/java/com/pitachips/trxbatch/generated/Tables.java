@@ -8,6 +8,7 @@ import com.pitachips.trxbatch.generated.tables.Account;
 import com.pitachips.trxbatch.generated.tables.AppMessage;
 import com.pitachips.trxbatch.generated.tables.Customer;
 import com.pitachips.trxbatch.generated.tables.CustomerComm;
+import com.pitachips.trxbatch.generated.tables.MonthlyTrxHeavyCustomer;
 import com.pitachips.trxbatch.generated.tables.MonthlyTrxReportResult;
 import com.pitachips.trxbatch.generated.tables.Trx;
 
@@ -37,6 +38,11 @@ public class Tables {
      * The table <code>trxbatch.CUSTOMER_COMM</code>.
      */
     public static final CustomerComm CUSTOMER_COMM = CustomerComm.CUSTOMER_COMM;
+
+    /**
+     * The table <code>trxbatch.MONTHLY_TRX_HEAVY_CUSTOMER</code>.
+     */
+    public static final MonthlyTrxHeavyCustomer MONTHLY_TRX_HEAVY_CUSTOMER = MonthlyTrxHeavyCustomer.MONTHLY_TRX_HEAVY_CUSTOMER;
 
     /**
      * The table <code>trxbatch.MONTHLY_TRX_REPORT_RESULT</code>.

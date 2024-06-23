@@ -8,6 +8,7 @@ import com.pitachips.trxbatch.generated.tables.Account;
 import com.pitachips.trxbatch.generated.tables.AppMessage;
 import com.pitachips.trxbatch.generated.tables.Customer;
 import com.pitachips.trxbatch.generated.tables.CustomerComm;
+import com.pitachips.trxbatch.generated.tables.MonthlyTrxHeavyCustomer;
 import com.pitachips.trxbatch.generated.tables.MonthlyTrxReportResult;
 import com.pitachips.trxbatch.generated.tables.Trx;
 
@@ -53,6 +54,11 @@ public class Trxbatch extends SchemaImpl {
     public final CustomerComm CUSTOMER_COMM = CustomerComm.CUSTOMER_COMM;
 
     /**
+     * The table <code>trxbatch.MONTHLY_TRX_HEAVY_CUSTOMER</code>.
+     */
+    public final MonthlyTrxHeavyCustomer MONTHLY_TRX_HEAVY_CUSTOMER = MonthlyTrxHeavyCustomer.MONTHLY_TRX_HEAVY_CUSTOMER;
+
+    /**
      * The table <code>trxbatch.MONTHLY_TRX_REPORT_RESULT</code>.
      */
     public final MonthlyTrxReportResult MONTHLY_TRX_REPORT_RESULT = MonthlyTrxReportResult.MONTHLY_TRX_REPORT_RESULT;
@@ -82,6 +88,7 @@ public class Trxbatch extends SchemaImpl {
             AppMessage.APP_MESSAGE,
             Customer.CUSTOMER,
             CustomerComm.CUSTOMER_COMM,
+            MonthlyTrxHeavyCustomer.MONTHLY_TRX_HEAVY_CUSTOMER,
             MonthlyTrxReportResult.MONTHLY_TRX_REPORT_RESULT,
             Trx.TRX
         );

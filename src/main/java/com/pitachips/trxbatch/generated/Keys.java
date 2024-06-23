@@ -8,12 +8,14 @@ import com.pitachips.trxbatch.generated.tables.Account;
 import com.pitachips.trxbatch.generated.tables.AppMessage;
 import com.pitachips.trxbatch.generated.tables.Customer;
 import com.pitachips.trxbatch.generated.tables.CustomerComm;
+import com.pitachips.trxbatch.generated.tables.MonthlyTrxHeavyCustomer;
 import com.pitachips.trxbatch.generated.tables.MonthlyTrxReportResult;
 import com.pitachips.trxbatch.generated.tables.Trx;
 import com.pitachips.trxbatch.generated.tables.records.AccountRecord;
 import com.pitachips.trxbatch.generated.tables.records.AppMessageRecord;
 import com.pitachips.trxbatch.generated.tables.records.CustomerCommRecord;
 import com.pitachips.trxbatch.generated.tables.records.CustomerRecord;
+import com.pitachips.trxbatch.generated.tables.records.MonthlyTrxHeavyCustomerRecord;
 import com.pitachips.trxbatch.generated.tables.records.MonthlyTrxReportResultRecord;
 import com.pitachips.trxbatch.generated.tables.records.TrxRecord;
 
@@ -39,6 +41,7 @@ public class Keys {
     public static final UniqueKey<CustomerRecord> KEY_CUSTOMER_PRIMARY = Internal.createUniqueKey(Customer.CUSTOMER, DSL.name("KEY_CUSTOMER_PRIMARY"), new TableField[] { Customer.CUSTOMER.ID }, true);
     public static final UniqueKey<CustomerCommRecord> KEY_CUSTOMER_COMM_CUSTOMER_ID = Internal.createUniqueKey(CustomerComm.CUSTOMER_COMM, DSL.name("KEY_CUSTOMER_COMM_customer_id"), new TableField[] { CustomerComm.CUSTOMER_COMM.CUSTOMER_ID, CustomerComm.CUSTOMER_COMM.TYPE }, true);
     public static final UniqueKey<CustomerCommRecord> KEY_CUSTOMER_COMM_PRIMARY = Internal.createUniqueKey(CustomerComm.CUSTOMER_COMM, DSL.name("KEY_CUSTOMER_COMM_PRIMARY"), new TableField[] { CustomerComm.CUSTOMER_COMM.ID }, true);
+    public static final UniqueKey<MonthlyTrxHeavyCustomerRecord> KEY_MONTHLY_TRX_HEAVY_CUSTOMER_PRIMARY = Internal.createUniqueKey(MonthlyTrxHeavyCustomer.MONTHLY_TRX_HEAVY_CUSTOMER, DSL.name("KEY_MONTHLY_TRX_HEAVY_CUSTOMER_PRIMARY"), new TableField[] { MonthlyTrxHeavyCustomer.MONTHLY_TRX_HEAVY_CUSTOMER.ID }, true);
     public static final UniqueKey<MonthlyTrxReportResultRecord> KEY_MONTHLY_TRX_REPORT_RESULT_PRIMARY = Internal.createUniqueKey(MonthlyTrxReportResult.MONTHLY_TRX_REPORT_RESULT, DSL.name("KEY_MONTHLY_TRX_REPORT_RESULT_PRIMARY"), new TableField[] { MonthlyTrxReportResult.MONTHLY_TRX_REPORT_RESULT.ID }, true);
     public static final UniqueKey<TrxRecord> KEY_TRX_PRIMARY = Internal.createUniqueKey(Trx.TRX, DSL.name("KEY_TRX_PRIMARY"), new TableField[] { Trx.TRX.ID }, true);
 }

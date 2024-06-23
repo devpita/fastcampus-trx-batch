@@ -4,6 +4,7 @@ import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.JobParametersValidator;
@@ -21,6 +22,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class MonthlyTrxReportJobConfiguration extends DefaultBatchConfiguration {
@@ -31,14 +33,18 @@ public class MonthlyTrxReportJobConfiguration extends DefaultBatchConfiguration 
 
     private final MonthlyTrxReportPagingItemReader monthlyTrxReportPagingItemReader;
     private final MonthlyTrxReportClassifier monthlyTrxReportClassifier;
-
+    private final HeavyCustomerSeparationItemReader heavyCustomerSeparationItemReader;
+    private final HeavyCustomerSeparationItemWriter heavyCustomerSeparationItemWriter;
 
     @Bean
-    public Job monthlyTrxReportJob(JobRepository jobRepository, Step customerMonthlyTrxReportStep) {
+    public Job monthlyTrxReportJob(JobRepository jobRepository,
+                                   Step heavyCustomerSeparationStep,
+                                   Step customerMonthlyTrxReportStep,
+                                   Step heavyCustomerMonthlyTrxReportStep) {
         return new JobBuilder(JOB_NAME, jobRepository).validator(validateTargetYearMonthParam())
-                                                      // customer / heavy customer 분리
-                                                      .start(customerMonthlyTrxReportStep)
-                                                      // heavy customer 는 별도의 step 으로 처리
+                                                      .start(heavyCustomerSeparationStep)
+                                                      .next(customerMonthlyTrxReportStep)
+                                                      .next(heavyCustomerMonthlyTrxReportStep)
                                                       .build();
     }
 
@@ -57,6 +63,15 @@ public class MonthlyTrxReportJobConfiguration extends DefaultBatchConfiguration 
     }
 
     @Bean
+    public Step heavyCustomerSeparationStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+        return new StepBuilder("heavyCustomerSeparationStep", jobRepository).<Long, Long>chunk(100, transactionManager)
+                                                                            .reader(heavyCustomerSeparationItemReader)
+                                                                            .writer(heavyCustomerSeparationItemWriter)
+                                                                            .build();
+    }
+
+
+    @Bean
     public Step customerMonthlyTrxReportStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("customerMonthlyTrxReportStep",
                                jobRepository).<CustomerMonthlyTrxReport, CustomerMonthlyTrxReport>chunk(100, transactionManager)
@@ -71,6 +86,14 @@ public class MonthlyTrxReportJobConfiguration extends DefaultBatchConfiguration 
     public ClassifierCompositeItemWriter<CustomerMonthlyTrxReport> classifierCompositeItemWriter() {
         return new ClassifierCompositeItemWriterBuilder<CustomerMonthlyTrxReport>().classifier(monthlyTrxReportClassifier)
                                                                                    .build();
+    }
+
+    @Bean
+    public Step heavyCustomerMonthlyTrxReportStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+        return new StepBuilder("heavyCustomerMonthlyTrxReportStep", jobRepository).tasklet((contribution, chunkContext) -> {
+            log.debug("Let's leave this part unimplemented!");
+            return null;
+        }, transactionManager).build();
     }
 
 
