@@ -53,6 +53,7 @@ class MonthlyTrxReportViaEmailWriterUnitTest {
 
         // when
         EmailServerResponse<BulkReserveResponseData> mockResponse = new EmailServerResponse<>();
+        mockResponse.setData(new BulkReserveResponseData(123L, 2));
         mockResponse.setResponseCode(EmailServerResponseCode.SUCCESS);
         when(monthlyTrxReportBulkEmailService.requestBulkReserve(any())).thenReturn(mockResponse);
         monthlyTrxReportViaEmailWriter.write(chunk);
