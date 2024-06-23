@@ -72,8 +72,6 @@ public class MonthlyTrxReportViaAppMessengerWriter implements ItemWriter<Custome
     }
 
     private void handleSuccess(List<MonthlyTrxSummary> summaries) {
-        log.info("Monthly transaction report has been successfully sent to App Messenger. summaries={}", summaries);
-
         int i = monthlyTrxReportResultRepository.batchInsertSuccessMonthlyTrxReportResult(summaries.stream()
                                                                                                    .map(MonthlyTrxSummary::getCustomerId)
                                                                                                    .toList(),

@@ -27,21 +27,10 @@ Content-Type: application/json
           "col1": "vvalue1",
           "col2": "vvalue2",
           "col3": "vvalue3",
-          "col4": "vvalue4",
+          "col4": "vvalue4"
         }
       ]
     }
   },
   "sendAt": "2024-05-23T10:15:30"
 }
-
-// Response
-// {
-//   "responseCode": "SUCCESS|FAIL",
-//   "responseMessage": "Response Message",
-//   "data": {
-//     "id": 123,
-//     "count": 2
-//   }
-// }
-//
