@@ -13,14 +13,14 @@ import static com.pitachips.trxbatch.generated.Tables.MONTHLY_TRX_REPORT_RESULT;
 public class MonthlyTrxReportDataCleaner {
 
     @Autowired
-    private final DSLContext trxBatchhDsl;
+    private final DSLContext trxBatchDsl;
 
-    public MonthlyTrxReportDataCleaner(DSLContext trxBatchhDsl) {
-        this.trxBatchhDsl = trxBatchhDsl;
+    public MonthlyTrxReportDataCleaner(DSLContext trxBatchDsl) {
+        this.trxBatchDsl = trxBatchDsl;
     }
 
     public void deleteAllApplicationDataCreatedDuringJobExecution() {
-        trxBatchhDsl.deleteFrom(MONTHLY_TRX_REPORT_RESULT).execute();
-        trxBatchhDsl.deleteFrom(APP_MESSAGE).execute();
+        trxBatchDsl.deleteFrom(MONTHLY_TRX_REPORT_RESULT).execute();
+        trxBatchDsl.deleteFrom(APP_MESSAGE).execute();
     }
 }

@@ -2,6 +2,7 @@ package com.pitachips.trxbatch.job.monthlyTrxReport;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.ExitStatus;
@@ -13,6 +14,7 @@ import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestFactory;
@@ -24,6 +26,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 import com.pitachips.trxbatch.job.monthlyTrxReport.testhelper.MonthlyTrxReportDataCleaner;
+import com.pitachips.trxbatch.repository.AppMessageRepository;
 import com.pitachips.trxbatch.service.email.MonthlyTrxReportBulkEmailService;
 import com.pitachips.trxbatch.service.email.dto.BulkReserveMonthlyTrxReportRequestDto;
 import com.pitachips.trxbatch.service.email.dto.BulkReserveResponseData;
@@ -32,6 +35,9 @@ import com.pitachips.trxbatch.service.email.dto.enums.EmailServerResponseCode;
 
 import static com.pitachips.trxbatch.job.monthlyTrxReport.testhelper.MonthlyTrxReportJobDbIntgTestDataVerificationHelper.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -39,7 +45,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 @SpringBatchTest
 @ActiveProfiles("dbtest")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-public class MonthlyTrxReportJobConfigurationSuccessDbIntgTest {
+public class MonthlyTrxReportJobConfigurationAppMessageDbFailureDbIntgTest {
 
     @Autowired
     private DSLContext trxBatchDsl;
@@ -65,6 +71,9 @@ public class MonthlyTrxReportJobConfigurationSuccessDbIntgTest {
     @Autowired
     ClientHttpRequestFactory defaultRequestFactory;
 
+    @MockBean
+    private AppMessageRepository appMessageRepository;
+
     private MockRestServiceServer server;
 
     @BeforeEach
@@ -84,14 +93,14 @@ public class MonthlyTrxReportJobConfigurationSuccessDbIntgTest {
         monthlyTrxReportDataCleaner.deleteAllApplicationDataCreatedDuringJobExecution();
     }
 
-
     @Test
-    public void testSuccess() throws Exception {
+    public void testAppMessageDbNotRespondAtAll() throws Exception {
         // given
         JobParameters jobParameters =
                 jobLauncherTestUtils.getUniqueJobParametersBuilder().addString("targetYearMonth", "2024-04").toJobParameters();
 
 
+        // email-server always returns success
         server.expect(ExpectedCount.manyTimes(), requestTo("http://localhost:8181/bulk-reserve"))
               .andExpect(method(HttpMethod.POST))
               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -111,18 +120,25 @@ public class MonthlyTrxReportJobConfigurationSuccessDbIntgTest {
                           request);
               });
 
+        // Set up AppMessageRepository to always throw exception
+        doThrow(new DataAccessException("App Message DB is locked")).when(appMessageRepository)
+                                                                    .batchInsertMonthlyTrxReport(anyInt(),
+                                                                                                 anyInt(),
+                                                                                                 any(),
+                                                                                                 any());
+
         // when
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
 
         // then
         assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
 
-        assertEquals(SUCCESSFUL_REPORT_SUCCESS_COUNT, getReportSuccessCount(trxBatchDsl));
+        assertEquals(SUCCESSFUL_REPORT_SUCCESS_COUNT - SUCCESSFUL_REPORT_VIA_APP_MESSAGE_SUCCESS_COUNT,
+                     getReportSuccessCount(trxBatchDsl));
         assertEquals(SUCCESSFUL_REPORT_VIA_POST_SUCCESS_COUNT, getReportViaPostSuccessCount(trxBatchDsl));
         assertEquals(SUCCESSFUL_REPORT_VIA_EMAIL_SUCCESS_COUNT, getReportViaEmailSuccessCount(trxBatchDsl));
-        assertEquals(SUCCESSFUL_REPORT_VIA_APP_MESSAGE_SUCCESS_COUNT, getReportViaAppMessageSuccessCount(trxBatchDsl));
-        assertEquals(SUCCESSFUL_APP_MESSAGE_DB_STORE_COUNT, getAppMessageDbStoredCount(trxBatchDsl));
-
+        assertEquals(0, getReportViaAppMessageSuccessCount(trxBatchDsl));
+        assertEquals(0, getAppMessageDbStoredCount(trxBatchDsl));
     }
 
 }
