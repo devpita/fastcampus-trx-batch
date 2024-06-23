@@ -28,6 +28,8 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-batch'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
     implementation "org.jooq:jooq:${jooqVersion}"
     jooqCodegen 'com.mysql:mysql-connector-j'
