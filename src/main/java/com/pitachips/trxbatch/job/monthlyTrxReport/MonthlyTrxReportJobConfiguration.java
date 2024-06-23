@@ -36,7 +36,9 @@ public class MonthlyTrxReportJobConfiguration extends DefaultBatchConfiguration 
     @Bean
     public Job monthlyTrxReportJob(JobRepository jobRepository, Step customerMonthlyTrxReportStep) {
         return new JobBuilder(JOB_NAME, jobRepository).validator(validateTargetYearMonthParam())
+                                                      // customer / heavy customer 분리
                                                       .start(customerMonthlyTrxReportStep)
+                                                      // heavy customer 는 별도의 step 으로 처리
                                                       .build();
     }
 

@@ -77,6 +77,7 @@ public class MonthlyTrxReportViaEmailWriter implements ItemWriter<CustomerMonthl
         }
 
         if (emailServerResponse.getResponseCode() == EmailServerResponseCode.SUCCESS) {
+            log.info("Succeeded bulk-reserve id: {}", emailServerResponse.getData().getId());
             handleSuccess(chunk.getItems());
         } else {
             handleUnsuccessfulEmailServerProcess(chunk.getItems(), emailServerResponse);
