@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 import com.pitachips.trxbatch.dto.enums.ReportChannel;
+import com.pitachips.trxbatch.exceptions.TrxBatchEmailServerCommunicationException;
 import com.pitachips.trxbatch.exceptions.TrxBatchEmailServerProcessException;
 import com.pitachips.trxbatch.repository.MonthlyTrxReportResultRepository;
 import com.pitachips.trxbatch.service.email.MonthlyTrxReportBulkEmailService;
@@ -67,14 +68,18 @@ public class MonthlyTrxReportViaEmailWriter implements ItemWriter<CustomerMonthl
         requestDto.setSendAt(sendAt);
         requestDto.setTemplateData(convertToMonthlyTrxReportTemplateData(chunk.getItems()));
 
-
-        EmailServerResponse<BulkReserveResponseData> emailServerResponse =
-                monthlyTrxReportBulkEmailService.requestBulkReserve(requestDto);
+        EmailServerResponse<BulkReserveResponseData> emailServerResponse;
+        try {
+            emailServerResponse = monthlyTrxReportBulkEmailService.requestBulkReserve(requestDto);
+        } catch (TrxBatchEmailServerCommunicationException e) {
+            handleEmailServerCommunicationException(chunk.getItems(), e);
+            return;
+        }
 
         if (emailServerResponse.getResponseCode() == EmailServerResponseCode.SUCCESS) {
             handleSuccess(chunk.getItems());
         } else {
-            handleUnsuccesfulEmailServerProcess(chunk.getItems(), emailServerResponse, requestDto);
+            handleUnsuccessfulEmailServerProcess(chunk.getItems(), emailServerResponse);
         }
 
     }
@@ -88,13 +93,25 @@ public class MonthlyTrxReportViaEmailWriter implements ItemWriter<CustomerMonthl
         log.info("Inserted {} success records to monthlyTrxReportResultRepository", i);
     }
 
-    private void handleUnsuccesfulEmailServerProcess(List<? extends CustomerMonthlyTrxReport> items,
-                                                     EmailServerResponse<BulkReserveResponseData> emailServerResponse,
-                                                     BulkReserveMonthlyTrxReportRequestDto requestDto) {
 
-        log.error("E-mail server returned {}. Failure will be recorded to DB of data: {}",
-                  emailServerResponse.getResponseCode(),
-                  requestDto);
+    private void handleEmailServerCommunicationException(List<? extends CustomerMonthlyTrxReport> items,
+                                                         TrxBatchEmailServerCommunicationException e) {
+        log.error("Communication with e-mail server failed. Failure will be recorded to DB", e);
+        int i = monthlyTrxReportResultRepository.batchInsertFailMonthlyTrxReportResult(items.stream()
+                                                                                            .map(CustomerMonthlyTrxReport::getCustomerId)
+                                                                                            .collect(Collectors.toList()),
+                                                                                       YearMonth.parse(targetYearMonthString),
+                                                                                       ReportChannel.EMAIL,
+                                                                                       e);
+        log.info("Inserted {} fail records to monthlyTrxReportResultRepository", i);
+
+    }
+
+
+    private void handleUnsuccessfulEmailServerProcess(List<? extends CustomerMonthlyTrxReport> items,
+                                                      EmailServerResponse<BulkReserveResponseData> emailServerResponse) {
+
+        log.error("E-mail server returned {}. Failure will be recorded to DB of data", emailServerResponse.getResponseCode());
 
         int i = monthlyTrxReportResultRepository.batchInsertFailMonthlyTrxReportResult(items.stream()
                                                                                             .map(CustomerMonthlyTrxReport::getCustomerId)
