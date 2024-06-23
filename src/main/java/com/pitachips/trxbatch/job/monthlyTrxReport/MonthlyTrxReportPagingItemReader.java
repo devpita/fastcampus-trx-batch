@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 import com.pitachips.trxbatch.repository.MonthlyTrxReportRepository;
 
+import static com.pitachips.trxbatch.job.monthlyTrxReport.MonthlyTrxReportJobConfiguration.JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION;
+
 @Slf4j
 @Component
 @StepScope
@@ -28,7 +30,7 @@ public class MonthlyTrxReportPagingItemReader extends AbstractPagingItemReader<C
 
     private Long lastCustomerId;
 
-    public MonthlyTrxReportPagingItemReader(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString,
+    public MonthlyTrxReportPagingItemReader(@Value(JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION) String targetYearMonthString,
                                             MonthlyTrxReportRepository monthlyTrxReportRepository) {
         YearMonth targetYearMonth = YearMonth.parse(targetYearMonthString);
         this.from = targetYearMonth.atDay(1).atStartOfDay();

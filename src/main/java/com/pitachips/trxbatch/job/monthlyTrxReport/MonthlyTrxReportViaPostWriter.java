@@ -31,6 +31,8 @@ import com.pitachips.trxbatch.exceptions.TrxBatchCsvWriteException;
 import com.pitachips.trxbatch.repository.MonthlyTrxReportResultRepository;
 import com.pitachips.trxbatch.util.MaskUtil;
 
+import static com.pitachips.trxbatch.job.monthlyTrxReport.MonthlyTrxReportJobConfiguration.JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION;
+
 @Slf4j
 @Component
 @StepScope
@@ -46,7 +48,7 @@ public class MonthlyTrxReportViaPostWriter implements ItemWriter<CustomerMonthly
     private final String targetYearMonthString;
     private final MonthlyTrxReportResultRepository monthlyTrxReportResultRepository;
 
-    public MonthlyTrxReportViaPostWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString,
+    public MonthlyTrxReportViaPostWriter(@Value(JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION) String targetYearMonthString,
                                          MonthlyTrxReportResultRepository monthlyTrxReportResultRepository) {
         this.targetYearMonthString = targetYearMonthString;
         this.monthlyTrxReportResultRepository = monthlyTrxReportResultRepository;

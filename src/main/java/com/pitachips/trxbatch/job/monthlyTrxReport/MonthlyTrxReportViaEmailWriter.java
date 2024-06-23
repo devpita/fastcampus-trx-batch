@@ -28,6 +28,8 @@ import com.pitachips.trxbatch.service.email.dto.EmailServerResponse;
 import com.pitachips.trxbatch.service.email.dto.enums.EmailServerResponseCode;
 import com.pitachips.trxbatch.util.MaskUtil;
 
+import static com.pitachips.trxbatch.job.monthlyTrxReport.MonthlyTrxReportJobConfiguration.JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION;
+
 @Slf4j
 @Component
 @StepScope
@@ -46,7 +48,7 @@ public class MonthlyTrxReportViaEmailWriter implements ItemWriter<CustomerMonthl
     private final MonthlyTrxReportResultRepository monthlyTrxReportResultRepository;
 
 
-    public MonthlyTrxReportViaEmailWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString,
+    public MonthlyTrxReportViaEmailWriter(@Value(JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION) String targetYearMonthString,
                                           MonthlyTrxReportBulkEmailService monthlyTrxReportBulkEmailService,
                                           MonthlyTrxReportResultRepository monthlyTrxReportResultRepository) {
         this.sendAt = decideSendingDateTime(targetYearMonthString);

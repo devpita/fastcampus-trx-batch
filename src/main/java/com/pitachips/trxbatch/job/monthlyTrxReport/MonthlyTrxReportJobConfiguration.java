@@ -1,7 +1,12 @@
 package com.pitachips.trxbatch.job.monthlyTrxReport;
 
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.JobParametersValidator;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.configuration.support.DefaultBatchConfiguration;
@@ -21,6 +26,8 @@ import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 public class MonthlyTrxReportJobConfiguration extends DefaultBatchConfiguration {
 
     private static final String JOB_NAME = "monthlyTrxReportJob";
+    private static final String JOB_PARAM_TARGET_YEAR_MONTH = "targetYearMonth";
+    public static final String JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION = "#{jobParameters['" + JOB_PARAM_TARGET_YEAR_MONTH + "']}";
 
     private final MonthlyTrxReportPagingItemReader monthlyTrxReportPagingItemReader;
     private final MonthlyTrxReportClassifier monthlyTrxReportClassifier;
@@ -28,7 +35,23 @@ public class MonthlyTrxReportJobConfiguration extends DefaultBatchConfiguration 
 
     @Bean
     public Job monthlyTrxReportJob(JobRepository jobRepository, Step customerMonthlyTrxReportStep) {
-        return new JobBuilder(JOB_NAME, jobRepository).start(customerMonthlyTrxReportStep).build();
+        return new JobBuilder(JOB_NAME, jobRepository).validator(validateTargetYearMonthParam())
+                                                      .start(customerMonthlyTrxReportStep)
+                                                      .build();
+    }
+
+    private JobParametersValidator validateTargetYearMonthParam() {
+        return parameters -> {
+            if (parameters == null || parameters.getString("targetYearMonth") == null) {
+                throw new JobParametersInvalidException("Required parameter is missing: " + JOB_PARAM_TARGET_YEAR_MONTH);
+            }
+
+            try {
+                YearMonth.parse(parameters.getString("targetYearMonth"));
+            } catch (DateTimeParseException e) {
+                throw new JobParametersInvalidException("Invalid parameter format: " + JOB_PARAM_TARGET_YEAR_MONTH);
+            }
+        };
     }
 
     @Bean

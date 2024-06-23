@@ -20,6 +20,8 @@ import com.pitachips.trxbatch.exceptions.TrxBatchUnexpectedException;
 import com.pitachips.trxbatch.repository.AppMessageRepository;
 import com.pitachips.trxbatch.repository.MonthlyTrxReportResultRepository;
 
+import static com.pitachips.trxbatch.job.monthlyTrxReport.MonthlyTrxReportJobConfiguration.JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION;
+
 @Slf4j
 @Component
 @StepScope
@@ -32,7 +34,7 @@ public class MonthlyTrxReportViaAppMessengerWriter implements ItemWriter<Custome
     private final MonthlyTrxReportResultRepository monthlyTrxReportResultRepository;
 
 
-    public MonthlyTrxReportViaAppMessengerWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString,
+    public MonthlyTrxReportViaAppMessengerWriter(@Value(JOB_PARAM_TARGET_YEAR_MONTH_EXPRESSION) String targetYearMonthString,
                                                  AppMessageRepository appMessageRepository,
                                                  MonthlyTrxReportResultRepository monthlyTrxReportResultRepository) {
         YearMonth targetYearMonth = YearMonth.parse(targetYearMonthString);
