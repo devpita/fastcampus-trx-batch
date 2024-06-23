@@ -52,7 +52,7 @@ class MonthlyTrxReportBulkEmailServiceSpringTest {
     }
 
     @Test
-    public void foo() throws JsonProcessingException {
+    public void testRequestBulkReserveSuccess() throws JsonProcessingException {
         // given
         var customerOneData = new BulkReserveMonthlyTrxReportRequestTemplateContent();
         customerOneData.setMonthlyTrxReportRows(List.of(createSingleRowOfBulkReserveRequestTemplateContent(1),
