@@ -15,6 +15,7 @@ import org.springframework.batch.item.Chunk;
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 import com.pitachips.trxbatch.dto.MonthlyTrxSummary;
 import com.pitachips.trxbatch.repository.AppMessageRepository;
+import com.pitachips.trxbatch.repository.MonthlyTrxReportResultRepository;
 
 import static com.pitachips.trxbatch.job.monthlyTrxReport.fixtures.CustomerMonthlyTrxReportFixtures.FIXTURE_REPORT_OF_SINGLE_CUSTOMER_WITH_ID_1_THREE_TRXS;
 import static com.pitachips.trxbatch.job.monthlyTrxReport.fixtures.CustomerMonthlyTrxReportFixtures.FIXTURE_REPORT_OF_SINGLE_CUSTOMER_WITH_ID_2_THREE_TRXS;
@@ -28,11 +29,14 @@ class MonthlyTrxReportViaAppMessengerWriterUnitTest {
     @Mock
     private AppMessageRepository appMessageRepository;
 
+    @Mock
+    private MonthlyTrxReportResultRepository monthlyTrxReportResultRepository;
+
     private MonthlyTrxReportViaAppMessengerWriter writer;
 
     @BeforeEach
     void setUp() {
-        writer = new MonthlyTrxReportViaAppMessengerWriter("2024-05", appMessageRepository);
+        writer = new MonthlyTrxReportViaAppMessengerWriter("2024-05", appMessageRepository, monthlyTrxReportResultRepository);
     }
 
     @Test
@@ -63,6 +67,8 @@ class MonthlyTrxReportViaAppMessengerWriterUnitTest {
         assertEquals(2L, summary2.getCustomerId());
         assertEquals(3, summary2.getTrxCount());
         assertEquals(new BigInteger("140000"), summary2.getTrxAmountSum());
+
+        verify(monthlyTrxReportResultRepository, times(1)).batchInsertSuccessMonthlyTrxReportResult(any(), any(), any());
     }
 
     @Test
@@ -75,6 +81,7 @@ class MonthlyTrxReportViaAppMessengerWriterUnitTest {
 
         // then
         verify(appMessageRepository, never()).batchInsertMonthlyTrxReport(anyInt(), anyInt(), any(), any());
+        verify(monthlyTrxReportResultRepository, never()).batchInsertSuccessMonthlyTrxReportResult(any(), any(), any());
     }
 
 }

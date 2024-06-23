@@ -3,7 +3,9 @@ package com.pitachips.trxbatch.job.monthlyTrxReport;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.NumberFormat;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -23,7 +25,10 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Component;
 
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
+import com.pitachips.trxbatch.dto.enums.ReportChannel;
 import com.pitachips.trxbatch.dto.enums.TransactionType;
+import com.pitachips.trxbatch.exceptions.TrxBatchCsvWriteException;
+import com.pitachips.trxbatch.repository.MonthlyTrxReportResultRepository;
 import com.pitachips.trxbatch.util.MaskUtil;
 
 @Slf4j
@@ -39,9 +44,12 @@ public class MonthlyTrxReportViaPostWriter implements ItemWriter<CustomerMonthly
     private static final NumberFormat NUMBER_FORMAT = NumberFormat.getIntegerInstance(Locale.ENGLISH);
 
     private final String targetYearMonthString;
+    private final MonthlyTrxReportResultRepository monthlyTrxReportResultRepository;
 
-    public MonthlyTrxReportViaPostWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString) {
+    public MonthlyTrxReportViaPostWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString,
+                                         MonthlyTrxReportResultRepository monthlyTrxReportResultRepository) {
         this.targetYearMonthString = targetYearMonthString;
+        this.monthlyTrxReportResultRepository = monthlyTrxReportResultRepository;
     }
 
     @Override
@@ -50,6 +58,7 @@ public class MonthlyTrxReportViaPostWriter implements ItemWriter<CustomerMonthly
             return;
         }
 
+        List<Long> successCustomerIds = new ArrayList<>();
         for (CustomerMonthlyTrxReport report : reports) {
             FlatFileItemWriter<MonthlyTrxReportRow> fileItemWriter = new FlatFileItemWriter<>();
             fileItemWriter.setResource(new FileSystemResource(decideTargetPath(report)));
@@ -58,15 +67,37 @@ public class MonthlyTrxReportViaPostWriter implements ItemWriter<CustomerMonthly
                 fileItemWriter.afterPropertiesSet();
                 fileItemWriter.open(new ExecutionContext());
                 fileItemWriter.write(collectRows(report));
+                successCustomerIds.add(report.getCustomerId());
             } catch (Exception e) {
                 log.error("Failed to write CSV file for customer {}", report.getCustomerId(), e);
+                handleFileWriteError(report.getCustomerId(), e);
             } finally {
                 fileItemWriter.close();
             }
-
-
         }
+
+        handleSuccessCases(successCustomerIds);
     }
+
+
+    private void handleSuccessCases(List<Long> customerIds) {
+        int i = monthlyTrxReportResultRepository.batchInsertSuccessMonthlyTrxReportResult(customerIds,
+                                                                                          YearMonth.parse(targetYearMonthString),
+                                                                                          ReportChannel.POST);
+
+        log.info("Inserted {} success records to monthlyTrxReportResultRepository", i);
+    }
+
+
+    private void handleFileWriteError(Long customerId, Exception e) {
+        int i = monthlyTrxReportResultRepository.insertFailMonthlyTrxReportResult(customerId,
+                                                                                  YearMonth.parse(targetYearMonthString),
+                                                                                  ReportChannel.POST,
+                                                                                  new TrxBatchCsvWriteException(e));
+
+        log.info("Inserted {} fail records to monthlyTrxReportResultRepository", i);
+    }
+
 
     private static Chunk<MonthlyTrxReportRow> collectRows(CustomerMonthlyTrxReport item) {
         List<MonthlyTrxReportRow> rows = item.getCustomerMonthlyTrxReportDetails().stream().map(vo -> {

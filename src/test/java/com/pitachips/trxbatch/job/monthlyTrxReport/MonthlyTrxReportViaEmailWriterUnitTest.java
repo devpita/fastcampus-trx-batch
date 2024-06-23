@@ -2,6 +2,7 @@ package com.pitachips.trxbatch.job.monthlyTrxReport;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,30 +14,34 @@ import org.springframework.batch.item.Chunk;
 
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 import com.pitachips.trxbatch.dto.enums.TransactionType;
+import com.pitachips.trxbatch.exceptions.TrxBatchEmailServerProcessException;
+import com.pitachips.trxbatch.repository.MonthlyTrxReportResultRepository;
 import com.pitachips.trxbatch.service.email.MonthlyTrxReportBulkEmailService;
 import com.pitachips.trxbatch.service.email.dto.BulkReserveMonthlyTrxReportRequestDto;
 import com.pitachips.trxbatch.service.email.dto.BulkReserveMonthlyTrxReportRequestTemplateContent;
 import com.pitachips.trxbatch.service.email.dto.BulkReserveResponseData;
 import com.pitachips.trxbatch.service.email.dto.EmailServerResponse;
+import com.pitachips.trxbatch.service.email.dto.enums.EmailServerResponseCode;
 
-import static com.pitachips.trxbatch.job.monthlyTrxReport.fixtures.CustomerMonthlyTrxReportFixtures.FIXTURE_REPORT_OF_SINGLE_CUSTOMER_WITH_ID_1_THREE_TRXS;
-import static com.pitachips.trxbatch.job.monthlyTrxReport.fixtures.CustomerMonthlyTrxReportFixtures.FIXTURE_REPORT_OF_SINGLE_CUSTOMER_WITH_ID_2_THREE_TRXS;
+import static com.pitachips.trxbatch.job.monthlyTrxReport.fixtures.CustomerMonthlyTrxReportFixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MonthlyTrxReportViaEmailWriterUnitTest {
 
     @Mock
     private MonthlyTrxReportBulkEmailService monthlyTrxReportBulkEmailService;
+    @Mock
+    private MonthlyTrxReportResultRepository monthlyTrxReportResultRepository;
 
     private MonthlyTrxReportViaEmailWriter monthlyTrxReportViaEmailWriter;
 
     @BeforeEach
     void setUp() {
-        monthlyTrxReportViaEmailWriter = new MonthlyTrxReportViaEmailWriter("2024-05", monthlyTrxReportBulkEmailService);
+        monthlyTrxReportViaEmailWriter =
+                new MonthlyTrxReportViaEmailWriter("2024-05", monthlyTrxReportBulkEmailService, monthlyTrxReportResultRepository);
     }
 
     @Test
@@ -48,6 +53,7 @@ class MonthlyTrxReportViaEmailWriterUnitTest {
 
         // when
         EmailServerResponse<BulkReserveResponseData> mockResponse = new EmailServerResponse<>();
+        mockResponse.setResponseCode(EmailServerResponseCode.SUCCESS);
         when(monthlyTrxReportBulkEmailService.requestBulkReserve(any())).thenReturn(mockResponse);
         monthlyTrxReportViaEmailWriter.write(chunk);
 
@@ -129,7 +135,40 @@ class MonthlyTrxReportViaEmailWriterUnitTest {
         assertEquals("90,000", monthlyTrxReportRowForCustomerTwo.getAmount());
         assertEquals("KRW", monthlyTrxReportRowForCustomerTwo.getCurrency());
 
+        ArgumentCaptor<List<Long>> customerIdsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(monthlyTrxReportResultRepository, times(1)).batchInsertSuccessMonthlyTrxReportResult(customerIdsCaptor.capture(),
+                                                                                                    any(),
+                                                                                                    any());
+        List<Long> customerIds = customerIdsCaptor.getValue();
+        assertEquals(2, customerIds.size());
     }
 
+
+    @Test
+    public void testHandleReportsUnsuccessfulResponse() throws Exception {
+
+        // given
+        Chunk<CustomerMonthlyTrxReport> chunk = new Chunk<>(FIXTURE_REPORT_OF_SINGLE_CUSTOMER_SINGLE_TRX());
+
+        EmailServerResponse<BulkReserveResponseData> mockResponse = new EmailServerResponse<>();
+        mockResponse.setResponseCode(EmailServerResponseCode.FAIL);
+        mockResponse.setResponseMessage("Test Message");
+        when(monthlyTrxReportBulkEmailService.requestBulkReserve(any())).thenReturn(mockResponse);
+
+        // when
+        monthlyTrxReportViaEmailWriter.write(chunk);
+
+        // then
+        verify(monthlyTrxReportBulkEmailService, times(1)).requestBulkReserve(any());
+
+        ArgumentCaptor<List<Long>> customerIdsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(monthlyTrxReportResultRepository, times(1)).batchInsertFailMonthlyTrxReportResult(customerIdsCaptor.capture(),
+                                                                                                 any(),
+                                                                                                 any(),
+                                                                                                 any(TrxBatchEmailServerProcessException.class));
+        List<Long> customerIds = customerIdsCaptor.getValue();
+        assertEquals(1, customerIds.size());
+
+    }
 
 }

@@ -10,19 +10,27 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
+import com.pitachips.trxbatch.dto.enums.ReportChannel;
+import com.pitachips.trxbatch.exceptions.TrxBatchEmailServerProcessException;
+import com.pitachips.trxbatch.repository.MonthlyTrxReportResultRepository;
 import com.pitachips.trxbatch.service.email.MonthlyTrxReportBulkEmailService;
 import com.pitachips.trxbatch.service.email.dto.BulkReserveMonthlyTrxReportRequestDto;
 import com.pitachips.trxbatch.service.email.dto.BulkReserveMonthlyTrxReportRequestTemplateContent;
+import com.pitachips.trxbatch.service.email.dto.BulkReserveResponseData;
+import com.pitachips.trxbatch.service.email.dto.EmailServerResponse;
+import com.pitachips.trxbatch.service.email.dto.enums.EmailServerResponseCode;
 import com.pitachips.trxbatch.util.MaskUtil;
 
 @Slf4j
 @Component
+@StepScope
 public class MonthlyTrxReportViaEmailWriter implements ItemWriter<CustomerMonthlyTrxReport> {
     private static final int DAY_10 = 10;
     private static final int HOUR_9 = 9;
@@ -32,14 +40,19 @@ public class MonthlyTrxReportViaEmailWriter implements ItemWriter<CustomerMonthl
     private static final NumberFormat NUMBER_FORMAT = NumberFormat.getIntegerInstance(Locale.ENGLISH);
 
     private final LocalDateTime sendAt;
+    private final String targetYearMonthString;
 
     private final MonthlyTrxReportBulkEmailService monthlyTrxReportBulkEmailService;
+    private final MonthlyTrxReportResultRepository monthlyTrxReportResultRepository;
+
 
     public MonthlyTrxReportViaEmailWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString,
-                                          MonthlyTrxReportBulkEmailService monthlyTrxReportBulkEmailService) {
+                                          MonthlyTrxReportBulkEmailService monthlyTrxReportBulkEmailService,
+                                          MonthlyTrxReportResultRepository monthlyTrxReportResultRepository) {
         this.sendAt = decideSendingDateTime(targetYearMonthString);
+        this.targetYearMonthString = targetYearMonthString;
         this.monthlyTrxReportBulkEmailService = monthlyTrxReportBulkEmailService;
-        // TODO: do something
+        this.monthlyTrxReportResultRepository = monthlyTrxReportResultRepository;
     }
 
     @Override
@@ -53,8 +66,46 @@ public class MonthlyTrxReportViaEmailWriter implements ItemWriter<CustomerMonthl
         requestDto.setTemplateData(convertToMonthlyTrxReportTemplateData(chunk.getItems()));
 
 
-        monthlyTrxReportBulkEmailService.requestBulkReserve(requestDto);
+        EmailServerResponse<BulkReserveResponseData> emailServerResponse =
+                monthlyTrxReportBulkEmailService.requestBulkReserve(requestDto);
+
+        if (emailServerResponse.getResponseCode() == EmailServerResponseCode.SUCCESS) {
+            handleSuccess(chunk.getItems());
+        } else {
+            handleUnsuccesfulEmailServerProcess(chunk.getItems(), emailServerResponse, requestDto);
+        }
+
     }
+
+    private void handleSuccess(List<? extends CustomerMonthlyTrxReport> reports) {
+        int i = monthlyTrxReportResultRepository.batchInsertSuccessMonthlyTrxReportResult(reports.stream()
+                                                                                                 .map(CustomerMonthlyTrxReport::getCustomerId)
+                                                                                                 .collect(Collectors.toList()),
+                                                                                          YearMonth.parse(targetYearMonthString),
+                                                                                          ReportChannel.EMAIL);
+        log.info("Inserted {} success records to monthlyTrxReportResultRepository", i);
+    }
+
+    private void handleUnsuccesfulEmailServerProcess(List<? extends CustomerMonthlyTrxReport> items,
+                                                     EmailServerResponse<BulkReserveResponseData> emailServerResponse,
+                                                     BulkReserveMonthlyTrxReportRequestDto requestDto) {
+
+        log.error("E-mail server returned {}. Failure will be recorded to DB of data: {}",
+                  emailServerResponse.getResponseCode(),
+                  requestDto);
+
+        int i = monthlyTrxReportResultRepository.batchInsertFailMonthlyTrxReportResult(items.stream()
+                                                                                            .map(CustomerMonthlyTrxReport::getCustomerId)
+                                                                                            .collect(Collectors.toList()),
+                                                                                       YearMonth.parse(targetYearMonthString),
+                                                                                       ReportChannel.EMAIL,
+                                                                                       new TrxBatchEmailServerProcessException(
+                                                                                               emailServerResponse.getResponseMessage()));
+
+        log.info("Inserted {} fail records to monthlyTrxReportResultRepository", i);
+
+    }
+
 
     private LinkedHashMap<Long, BulkReserveMonthlyTrxReportRequestTemplateContent> convertToMonthlyTrxReportTemplateData(List<?
             extends CustomerMonthlyTrxReport> reports) {
