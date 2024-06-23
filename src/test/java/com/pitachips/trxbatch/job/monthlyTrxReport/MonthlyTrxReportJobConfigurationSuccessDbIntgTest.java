@@ -1,6 +1,7 @@
 package com.pitachips.trxbatch.job.monthlyTrxReport;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+@Slf4j
 @SpringBootTest
 @SpringBatchTest
 @ActiveProfiles("dbtest")
@@ -98,6 +100,8 @@ public class MonthlyTrxReportJobConfigurationSuccessDbIntgTest {
               .andRespond(request -> {
                   BulkReserveMonthlyTrxReportRequestDto requestBody =
                           objectMapper.readValue(request.getBody().toString(), BulkReserveMonthlyTrxReportRequestDto.class);
+
+                  log.info("Received bulk reserve request: {}", request.getBody());
 
                   // get current time in millis
                   long randomId = System.currentTimeMillis();
