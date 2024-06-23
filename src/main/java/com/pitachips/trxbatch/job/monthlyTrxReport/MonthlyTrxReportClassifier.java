@@ -7,6 +7,7 @@ import org.springframework.classify.Classifier;
 import org.springframework.stereotype.Component;
 
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
+import com.pitachips.trxbatch.exceptions.TrxBatchNotSupportedException;
 
 @Slf4j
 @Component
@@ -14,9 +15,17 @@ import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 public class MonthlyTrxReportClassifier implements
         Classifier<CustomerMonthlyTrxReport, ItemWriter<? super CustomerMonthlyTrxReport>> {
 
+    private final MonthlyTrxReportViaEmailWriter monthlyTrxReportViaEmailWriter;
+    private final MonthlyTrxReportViaPostWriter monthlyTrxReportViaPostWriter;
+    private final MonthlyTrxReportViaAppMessengerWriter monthlyTrxReportViaAppMessengerWriter;
 
     @Override
     public ItemWriter<? super CustomerMonthlyTrxReport> classify(CustomerMonthlyTrxReport customerMonthlyTrxReport) {
-        return null;
+        return switch (customerMonthlyTrxReport.getChannel()) {
+            case APP_MESSAGE -> monthlyTrxReportViaAppMessengerWriter;
+            case EMAIL -> monthlyTrxReportViaEmailWriter;
+            case POST -> monthlyTrxReportViaPostWriter;
+            default -> throw new TrxBatchNotSupportedException("Unsupported channel: " + customerMonthlyTrxReport.getChannel());
+        };
     }
 }

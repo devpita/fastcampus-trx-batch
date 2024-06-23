@@ -1,5 +1,7 @@
 package com.pitachips.trxbatch.job.monthlyTrxReport;
 
+import java.util.ArrayList;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.database.AbstractPagingItemReader;
@@ -20,5 +22,6 @@ public class MonthlyTrxReportPagingItemReader extends AbstractPagingItemReader<C
     @Override
     protected void doReadPage() {
         // TODO: do something
+        this.results = new ArrayList<>();
     }
 }

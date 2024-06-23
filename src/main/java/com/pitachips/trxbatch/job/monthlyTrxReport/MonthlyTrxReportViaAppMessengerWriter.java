@@ -1,14 +1,20 @@
 package com.pitachips.trxbatch.job.monthlyTrxReport;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import com.pitachips.trxbatch.dto.CustomerMonthlyTrxReport;
 
-public class MonthlyTrxreportViaAppMessengerWriter implements ItemWriter<CustomerMonthlyTrxReport> {
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class MonthlyTrxReportViaAppMessengerWriter implements ItemWriter<CustomerMonthlyTrxReport> {
 
-    public MonthlyTrxreportViaAppMessengerWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString) {
+    public MonthlyTrxReportViaAppMessengerWriter(@Value("#{jobParameters['targetYearMonth']}") String targetYearMonthString) {
         // TODO: do something
     }
 
